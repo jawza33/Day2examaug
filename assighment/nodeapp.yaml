@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation Template for Static Website on EC2. This
+  template deploys Static website on Amazon Linux 2 EC2
+  Instance with custom security group allowing HTTP connections on port 80.
+  Static Website is downloaded from Github repository, then
+  deployed on Apache Web Server
+
+Resources:
+  WebServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for Apache Web Server and ssh for terminal
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3100
+          ToPort: 3100
+          CidrIp: 0.0.0.0/0
+  WebServerHost:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: ami-0e0d82dfd5f84879e
+      InstanceType: t3.micro
+      KeyName: k8s-keypair
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: node-js-app
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            sudo yum update -y
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+            [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh
+            nvm install v12.16.1 -y
+            sudo yum install git -y
+            git clone https://github.com/sumant-mishra/node-app.git
+            cd node-app/
+            npm install
+            node index.js
+
+Outputs:
+  WebsiteURL:
+    Value: !Sub
+      - http://${PublicAddress}:3100
+      - PublicAddress: !GetAtt WebServerHost.PublicDnsName
+    Description: Application URL

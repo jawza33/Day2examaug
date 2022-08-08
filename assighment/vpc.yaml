@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a EC2 under a VPC
+Mappings:
+  RegionWiseImageIds:
+    us-east-1:
+      Amazonlinux: ami-0cff7528ff583bf9a
+      Ubuntu22: ami-052efd3df9dad4825
+Resources:
+  SampleVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        -
+          Key: Name
+          Value: Section2SampleVpc
+  SampleSubnet:
+    Type: AWS::EC2::Subnet 
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref SampleVpc
+  SampleRouteTable:
+    Type: AWS::EC2::RouteTable 
+    Properties:
+      VpcId: !Ref SampleVpc
+  SampleInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  SampleGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref SampleVpc
+      InternetGatewayId: !Ref SampleInternetGateway
+  InternetRoute:
+    Type: AWS::EC2::Route 
+    DependsOn:
+      - SampleGatewayAttachment
+    Properties:
+      RouteTableId: !Ref SampleRouteTable
+      GatewayId: !Ref SampleInternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+  SampleSubnetRouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SampleRouteTable
+      SubnetId: !Ref SampleSubnet
+  SampleInstance:
+    Type: AWS::EC2::Instance 
+    DependsOn:
+      - InternetRoute
+      - SampleSubnetRouteTableAssoc
+    Properties:
+      ImageId: !FindInMap 
+        - RegionWiseImageIds
+        - !Ref AWS::Region
+        - Ubuntu22
+      InstanceType: t2.micro
+      SubnetId: !Ref SampleSubnet 
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+  SampleInstance2:
+    Type: AWS::EC2::Instance 
+    DependsOn:
+      - InternetRoute
+      - SampleSubnetRouteTableAssoc
+    Properties:
+      ImageId: !FindInMap 
+        - RegionWiseImageIds
+        - !Ref AWS::Region
+        - Amazonlinux
+      InstanceType: t2.micro
+      SubnetId: !Ref SampleSubnet 
+      SecurityGroupIds:
+        - !Ref SecurityGroup2
+        - !Ref SecurityGroup
+
+      UserData: 
+        Fn::Base64: !Sub |
+            #!/bin/bash
+            yum install httpd -y
+            service httpd start  
+            echo "<html><body><h1>Hi jawza from SDA CodinDojo <h1></body></html>" > /var/www/html/index.html
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup 
+    Properties:
+      GroupDescription: Sample security group 
+      VpcId: !Ref SampleVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  SecurityGroup2:
+    Type: AWS::EC2::SecurityGroup 
+    Properties:
+
+      GroupDescription: Sample security group 
+      VpcId: !Ref SampleVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+Outputs:
+  Weburljem:
+    Value: !Sub
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt SampleInstance2.PublicDnsName
