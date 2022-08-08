@@ -1,0 +1,52 @@
+#Formatmvariable
+AWSTemplateFormatVersion: 2010-09-09
+#Description
+Description : This is my frist chance
+Mappings:
+  RegionWiseImageIds:
+    us-east-1:
+      Amazonlinux: ami-0cff7528ff583bf9a
+      Ubuntu22: ami-052efd3df9dad4825
+Parameters:
+ InstanceType:
+    Type: String
+    Description: This is a paramete for Instance Type
+Resources:
+  WebserverEC2Instance :
+    Type : AWS::EC2::Instance                             
+    Properties:
+      ImageId: !FindInMap 
+        - RegionWiseImageIds
+        - !Ref AWS::Region
+        - Ubuntu22
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - Ref: SecurityGroup
+  WebserverEC2Instance2 :
+    Type : AWS::EC2::Instance                             
+    Properties:
+      ImageId: !FindInMap 
+        - RegionWiseImageIds
+        - !Ref AWS::Region
+        - Amazonlinux
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - Ref: SecurityGroup2 
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  SecurityGroup2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0

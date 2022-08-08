@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  EC2ApacheInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0cff7528ff583bf9a
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - Ref: SecurityGroup
+        - Ref: SecurityGroup2
+
+      UserData: 
+        Fn::Base64:
+          !Sub |
+            #!/bin/sh
+            sudu su
+            yum update -y
+            yum install httpd -y
+            chmod -R 777 /var/www/html
+            cd /var/www/html
+            echo "<h1> Hello My name is jawza </h1>" > index.html  
+            systemctl start httpd
+            systemctl enable httpd  
+                  
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  SecurityGroup2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+Outputs:
+  WebsiteURL:
+    Value: !Sub
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt EC2ApacheInstance.PublicDnsName
+    Description: Application URL
+

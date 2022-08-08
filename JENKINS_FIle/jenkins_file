@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+
+    environment{
+        DEMO="1.1"
+    }
+
+    
+    stages {
+        stage('Fetch code') {
+            environment{
+                LOG_LEVEL = 'INFO'
+            }
+            steps {
+                echo 'Fetch code'
+
+                sh  'echo "hey i am runing my first shell commit - $DEMO"'
+
+                sh 'echo "Environment variable -- $BUILD_NUMBER"'
+
+                sh 'echo "log level is $LOG_LEVEL"'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Buid'
+            }
+        }
+        stage('Test'){
+            parallel{
+
+    
+             stage('UI Test') {
+            steps {
+                echo 'UI Test'
+            }
+             }
+
+        stage('API Test') {
+            steps {
+                echo 'API Test'
+            }
+        }
+
+         }
+        }
+        stage('Deploy') {
+            
+
+                input {
+                    message'proceed?'
+                    ok 'proceed?'
+                    parameters {
+                       string defaultValue: 'prod', name: 'TARGET_ENV', trim: true
+                    }
+                    }
+
+                steps {
+
+
+                 echo 'Deploy'
+            }
+            post {
+                always{
+
+                    echo "i am runing after deploy"
+                }
+            }
+        }
+    }
+}
